@@ -9,9 +9,9 @@ public class AccountsController : ControllerBase
 {
     private readonly AccountsViewModel _viewModel;
 
-    public AccountsController()
+    public AccountsController(AccountsViewModel viewModel)
     {
-        _viewModel = new AccountsViewModel();
+        _viewModel = viewModel;
     }
 
     [HttpGet]

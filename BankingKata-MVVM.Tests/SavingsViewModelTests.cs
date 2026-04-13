@@ -1,4 +1,5 @@
 using BankingKata_MVVM.ViewModels;
+using BankingKata_MVVM.Repositories;
 using Xunit;
 
 namespace BankingKata_MVVM.Tests;
@@ -9,7 +10,10 @@ public class SavingsViewModelTests
 
     public SavingsViewModelTests()
     {
-        _viewModel = new AccountsViewModel();
+        _viewModel = new AccountsViewModel(
+            new BankAccountRepository(),
+            new TransactionRepository(),
+            new SavingsAccountRepository());
     }
 
     [Fact]

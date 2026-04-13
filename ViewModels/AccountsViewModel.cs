@@ -1,15 +1,25 @@
-using System.Windows.Input;
+using System.Collections.ObjectModel;
 
 namespace BankingKata_MVVM.ViewModels;
 
 public class AccountsViewModel
 {
-    private readonly Repositories.BankAccountRepository _bankAccountRepo = new();
-    private readonly Repositories.TransactionRepository _transactionRepo = new();
-    private readonly Repositories.SavingsAccountRepository _savingsRepo = new();
+    private readonly Repositories.IBankAccountRepository _bankAccountRepo;
+    private readonly Repositories.ITransactionRepository _transactionRepo;
+    private readonly Repositories.ISavingsAccountRepository _savingsRepo;
 
-    public List<AccountViewModel> Accounts { get; } = new();
-    public List<SavingsAccountViewModel> SavingsAccounts { get; } = new();
+    public AccountsViewModel(
+        Repositories.IBankAccountRepository bankAccountRepo,
+        Repositories.ITransactionRepository transactionRepo,
+        Repositories.ISavingsAccountRepository savingsRepo)
+    {
+        _bankAccountRepo = bankAccountRepo;
+        _transactionRepo = transactionRepo;
+        _savingsRepo = savingsRepo;
+    }
+
+    public ObservableCollection<AccountViewModel> Accounts { get; } = new();
+    public ObservableCollection<SavingsAccountViewModel> SavingsAccounts { get; } = new();
 
     public void AddAccount(CreateAccountViewModel model)
     {

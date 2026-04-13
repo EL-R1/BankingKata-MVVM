@@ -2,7 +2,16 @@ namespace BankingKata_MVVM.Repositories;
 
 using BankingKata_MVVM.Models;
 
-public class BankAccountRepository
+public interface IBankAccountRepository
+{
+    bool Exists(string accountNumber);
+    BankAccount? GetByAccountNumber(string accountNumber);
+    IEnumerable<BankAccount> GetAll();
+    void Save(BankAccount account);
+    void Update(BankAccount account);
+}
+
+public class BankAccountRepository : IBankAccountRepository
 {
     private readonly Dictionary<string, BankAccount> _accounts = new();
 
@@ -27,7 +36,13 @@ public class BankAccountRepository
     }
 }
 
-public class TransactionRepository
+public interface ITransactionRepository
+{
+    void Save(Transaction transaction);
+    IEnumerable<Transaction> GetByAccountNumberInRange(string accountNumber, DateTime fromDate, DateTime toDate);
+}
+
+public class TransactionRepository : ITransactionRepository
 {
     private readonly List<Transaction> _transactions = new();
 
@@ -44,7 +59,16 @@ public class TransactionRepository
     }
 }
 
-public class SavingsAccountRepository
+public interface ISavingsAccountRepository
+{
+    bool Exists(string accountNumber);
+    SavingsAccount? GetByAccountNumber(string accountNumber);
+    IEnumerable<SavingsAccount> GetAll();
+    void Save(SavingsAccount account);
+    void Update(SavingsAccount account);
+}
+
+public class SavingsAccountRepository : ISavingsAccountRepository
 {
     private readonly Dictionary<string, SavingsAccount> _accounts = new();
 

@@ -9,9 +9,9 @@ public class SavingsController : ControllerBase
 {
     private readonly ViewModels.AccountsViewModel _viewModel;
 
-    public SavingsController()
+    public SavingsController(ViewModels.AccountsViewModel viewModel)
     {
-        _viewModel = new AccountsViewModel();
+        _viewModel = viewModel;
     }
 
     [HttpGet]
