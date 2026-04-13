@@ -47,10 +47,20 @@ graph TD
     AV --> BA
     SV --> SA
 
-    style HTTP fill:#f9f,stroke:#333
-    style AVM fill:#fb3,stroke:#333
-    style AV fill:#feb,stroke:#333
-    style BA fill:#dfd,stroke:#333
+    style HTTP fill:#e8f4f8,stroke:#333,color:#000000
+    style AC fill:#d4e8f4,stroke:#333,color:#000000
+    style SC fill:#d4e8f4,stroke:#333,color:#000000
+    style AVM fill:#d4f4e8,stroke:#333,color:#000000
+    style AV fill:#e4d4f4,stroke:#333,color:#000000
+    style SV fill:#e4d4f4,stroke:#333,color:#000000
+    style OV fill:#e4d4f4,stroke:#333,color:#000000
+    style StV fill:#e4d4f4,stroke:#333,color:#000000
+    style BA fill:#e8f4d4,stroke:#333,color:#000000
+    style SA fill:#e8f4d4,stroke:#333,color:#000000
+    style T fill:#e8f4d4,stroke:#333,color:#000000
+    style BR fill:#d4f4e8,stroke:#333,color:#000000
+    style SR fill:#d4f4e8,stroke:#333,color:#000000
+    style TR fill:#d4f4e8,stroke:#333,color:#000000
 ```
 
 ### Pattern MVVM
@@ -67,3 +77,15 @@ graph TD
 2. Propriétés avec setter qui appelle `OnPropertyChanged()`
 3. ViewModels gèrent la logique métier (pas les Controllers)
 4. Controllers délèguent au ViewModel
+
+### Structure du projet
+
+```
+BankingKata-MVVM/
+├── Controllers/      # Endpoints API
+├── ViewModels/       # Logique métier + Models avec PropertyChanged
+│   ├── AccountsViewModel.cs
+│   └── AccountViewModels.cs
+├── Models/           # Entités
+└── Repositories/     # Accès données
+```
