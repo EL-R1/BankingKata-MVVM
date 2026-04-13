@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BankingKata-MVVM\BankingKata-MVVM.csproj" />
+    <ProjectReference Include="..\BankingKata-MVVM.csproj" />
   </ItemGroup>
 
 </Project>
