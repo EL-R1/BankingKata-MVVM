@@ -50,56 +50,47 @@ builder.Services.AddSingleton<ISavingsAccountRepository, SavingsAccountRepositor
 builder.Services.AddTransient<AccountsViewModel>();
 ```
 
-## Schéma de l'Architecture
+## Schéma de l'Architecture MVVM
 
 ```mermaid
 graph TB
-    subgraph "View Layer"
-        Client[Client HTTP]
+    subgraph "View"
+        C[Controllers<br/>API Endpoints]
     end
 
-    subgraph "ViewModel Layer"
-        AVM[AccountsViewModel<br/>AccountsViewModel]
+    subgraph "ViewModel"
+        AVM[AccountsViewModel]
         AV[AccountViewModel<br/>INotifyPropertyChanged]
         SV[SavingsAccountViewModel<br/>INotifyPropertyChanged]
         StV[StatementViewModel<br/>INotifyPropertyChanged]
     end
 
-    subgraph "Model Layer"
-        BA[BankAccount]
-        SA[SavingsAccount]
+    subgraph "Model"
+        BA[BankAccount<br/>Business Logic]
+        SA[SavingsAccount<br/>Business Logic]
         T[Transaction]
     end
 
-    subgraph "Repository Layer"
+    subgraph "Infrastructure"
         IBR[IBankAccountRepository]
         ITR[ITransactionRepository]
         ISR[ISavingsAccountRepository]
     end
 
-    subgraph "Controllers"
-        AC[AccountsController]
-        SC[SavingsController]
-    end
-
-    Client -->|HTTP| AC
-    Client -->|HTTP| SC
-    AC -->|DI| AVM
-    SC -->|DI| AVM
-
+    C -->|inject| AVM
     AVM --> AV
     AVM --> SV
     AVM --> StV
 
-    AVM -->|use| BA
-    AVM -->|use| SA
-    AVM -->|use| T
+    AVM --> BA
+    AVM --> SA
+    AVM --> T
 
-    AVM -->|inject| IBR
-    AVM -->|inject| ITR
-    AVM -->|inject| ISR
+    BA --> IBR
+    SA --> ISR
+    T --> ITR
 
-    style Client fill:#f9f,stroke:#333
+    style View fill:#f9f,stroke:#333
     style AVM fill:#bbf,stroke:#333
     style AV fill:#ddf,stroke:#333
     style SV fill:#ddf,stroke:#333
@@ -110,28 +101,23 @@ graph TB
     style IBR fill:#fdd,stroke:#333
     style ITR fill:#fdd,stroke:#333
     style ISR fill:#fdd,stroke:#333
-    style AC fill:#ff9,stroke:#333
-    style SC fill:#ff9,stroke:#333
 ```
 
 ## Flux de Données
 
 ```mermaid
 sequenceDiagram
-    participant Client as Client HTTP
-    participant Controller as Controller
-    participant ViewModel as ViewModel
-    participant Model as Model
-    participant Repository as Repository
+    participant C as Controller
+    participant VM as ViewModel
+    participant M as Model
+    participant R as Repository
 
-    Client->>Controller: HTTP Request
-    Controller->>ViewModel: Appelle méthode<br/>(via DI)
-    ViewModel->>Model: Logique métier<br/>(Deposit/Withdraw)
-    Model->>Repository: Sauvegarde/Requête<br/>(Interface)
-    Repository-->>Model: Retourne données
-    Model-->>ViewModel: Retourne résultat
-    ViewModel-->>Controller: Retourne ViewModel<br/>(JSON serializable)
-    Controller-->>Client: JSON Response
+    C->>VM: Appelle méthode<br/>(via DI)
+    VM->>M: Logique métier<br/>(Deposit/Withdraw)
+    M->>R: Sauvegarde/Requête<br/>(Interface)
+    R-->>M: Retourne données
+    M-->>VM: Retourne résultat
+    VM-->>C: Retourne ViewModel<br/>(JSON)
 ```
 
 ## ViewModels avec PropertyChanged et ObservableCollection
