@@ -53,83 +53,84 @@ builder.Services.AddTransient<AccountsViewModel>();
 ## Schéma de l'Architecture
 
 ```mermaid
-graph TD
-    subgraph Client
-        HTTP[HTTP Requests]
+graph TB
+    subgraph "View Layer"
+        Client[Client HTTP]
     end
 
-    subgraph Controllers
-        AC[AccountsController<br/>api/accounts]
-        SC[SavingsController<br/>api/savings]
-    end
-
-    subgraph ViewModels
-        AVM[AccountsViewModel<br/>Dependency Injection]
+    subgraph "ViewModel Layer"
+        AVM[AccountsViewModel<br/>AccountsViewModel]
         AV[AccountViewModel<br/>INotifyPropertyChanged]
         SV[SavingsAccountViewModel<br/>INotifyPropertyChanged]
-        OV[OperationViewModel<br/>INotifyPropertyChanged]
         StV[StatementViewModel<br/>INotifyPropertyChanged]
     end
 
-    subgraph Models
+    subgraph "Model Layer"
         BA[BankAccount]
         SA[SavingsAccount]
         T[Transaction]
     end
 
-    subgraph Repositories[Repositories (Interfaces)]
+    subgraph "Repository Layer"
         IBR[IBankAccountRepository]
-        ISR[ISavingsAccountRepository]
         ITR[ITransactionRepository]
+        ISR[ISavingsAccountRepository]
     end
 
-    HTTP --> AC
-    HTTP --> SC
+    subgraph "Controllers"
+        AC[AccountsController]
+        SC[SavingsController]
+    end
 
-    AC -.->|DI| AVM
-    SC -.->|DI| AVM
+    Client -->|HTTP| AC
+    Client -->|HTTP| SC
+    AC -->|DI| AVM
+    SC -->|DI| AVM
 
     AVM --> AV
     AVM --> SV
+    AVM --> StV
 
-    AVM --> IBR
-    AVM --> ITR
-    AVM --> ISR
+    AVM -->|use| BA
+    AVM -->|use| SA
+    AVM -->|use| T
 
-    AV --> BA
-    SV --> SA
+    AVM -->|inject| IBR
+    AVM -->|inject| ITR
+    AVM -->|inject| ISR
 
-    style HTTP fill:#e8f4f8,stroke:#333,color:#000000
-    style AC fill:#d4e8f4,stroke:#333,color:#000000
-    style SC fill:#d4e8f4,stroke:#333,color:#000000
-    style AVM fill:#d4f4e8,stroke:#333,color:#000000
-    style AV fill:#e4d4f4,stroke:#333,color:#000000
-    style SV fill:#e4d4f4,stroke:#333,color:#000000
-    style OV fill:#e4d4f4,stroke:#333,color:#000000
-    style StV fill:#e4d4f4,stroke:#333,color:#000000
-    style BA fill:#e8f4d4,stroke:#333,color:#000000
-    style SA fill:#e8f4d4,stroke:#333,color:#000000
-    style T fill:#e8f4d4,stroke:#333,color:#000000
-    style Repositories fill:#d4f4e8,stroke:#333,color:#000000
+    style Client fill:#f9f,stroke:#333
+    style AVM fill:#bbf,stroke:#333
+    style AV fill:#ddf,stroke:#333
+    style SV fill:#ddf,stroke:#333
+    style StV fill:#ddf,stroke:#333
+    style BA fill:#dfd,stroke:#333
+    style SA fill:#dfd,stroke:#333
+    style T fill:#dfd,stroke:#333
+    style IBR fill:#fdd,stroke:#333
+    style ITR fill:#fdd,stroke:#333
+    style ISR fill:#fdd,stroke:#333
+    style AC fill:#ff9,stroke:#333
+    style SC fill:#ff9,stroke:#333
 ```
 
 ## Flux de Données
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant Controller
-    participant ViewModel
-    participant Model
-    participant Repository
+    participant Client as Client HTTP
+    participant Controller as Controller
+    participant ViewModel as ViewModel
+    participant Model as Model
+    participant Repository as Repository
 
     Client->>Controller: HTTP Request
-    Controller->>ViewModel: Délègue opération
-    ViewModel->>Model: Appelle méthode métier
-    Model->>Repository: Sauvegarde données
-    Repository-->>Model: Données sauvegardées
-    Model-->>ViewModel: Résultat
-    ViewModel-->>Controller: ViewModelmis à jour
+    Controller->>ViewModel: Appelle méthode<br/>(via DI)
+    ViewModel->>Model: Logique métier<br/>(Deposit/Withdraw)
+    Model->>Repository: Sauvegarde/Requête<br/>(Interface)
+    Repository-->>Model: Retourne données
+    Model-->>ViewModel: Retourne résultat
+    ViewModel-->>Controller: Retourne ViewModel<br/>(JSON serializable)
     Controller-->>Client: JSON Response
 ```
 
