@@ -1,29 +1,54 @@
 # BankingKata-MVVM
 
-API Bancaire en .NET 8 utilisant le pattern **MVVM (Model-View-ViewModel)**.
+API Bancaire en .NET 8 utilisant le pattern **MVVM (Model-View-ViewModel)** avec injection de dépendances.
 
 ## Architecture
 
 ```
 BankingKata-MVVM/
-├── Models/           # Modèles de domaine
+├── Models/           # Modèles de domaine (Business Logic)
 │   └── AccountModels.cs      # BankAccount, SavingsAccount, Transaction
-├── Repositories/     # Accès aux données
-│   └── Repositories.cs       # In-memory repositories
-├── ViewModels/       # ViewModels avec INotifyPropertyChanged
+├── Repositories/     # Accès aux données (via interfaces)
+│   └── Repositories.cs       # IBankAccountRepository, ITransactionRepository, ISavingsAccountRepository
+├── ViewModels/      # ViewModels avec INotifyPropertyChanged et ObservableCollection
 │   ├── AccountViewModels.cs   # AccountViewModel, StatementViewModel, etc.
-│   └── AccountsViewModel.cs  # Logique métier centralisée
-├── Controllers/      # Contrôleurs API
+│   └── AccountsViewModel.cs  # Logique métier avec DI
+├── Controllers/      # Contrôleurs API (injection du ViewModel)
 │   ├── AccountsController.cs
 │   └── SavingsController.cs
-└── Program.cs        # Point d'entrée
+└── Program.cs        # Configuration DI
 ```
 
 ## Pattern MVVM
 
 - **Model** : `Models/AccountModels.cs` - Données et logique métier
 - **View** : Controllers API qui retournent des ViewModels en JSON
-- **ViewModel** : `ViewModels/AccountsViewModel.cs` - État observable avec `INotifyPropertyChanged`
+- **ViewModel** : `ViewModels/AccountsViewModel.cs` - État observable avec `INotifyPropertyChanged` et `ObservableCollection`
+
+### Injection de Dépendances
+
+Le ViewModel et les Repositories sont injectés via le constructeur :
+
+```csharp
+public class AccountsController : ControllerBase
+{
+    private readonly AccountsViewModel _viewModel;
+
+    public AccountsController(AccountsViewModel viewModel)
+    {
+        _viewModel = viewModel;
+    }
+}
+```
+
+Les services sont configurés dans `Program.cs` :
+
+```csharp
+builder.Services.AddSingleton<IBankAccountRepository, BankAccountRepository>();
+builder.Services.AddSingleton<ITransactionRepository, TransactionRepository>();
+builder.Services.AddSingleton<ISavingsAccountRepository, SavingsAccountRepository>();
+builder.Services.AddTransient<AccountsViewModel>();
+```
 
 ## Schéma de l'Architecture
 
@@ -39,7 +64,7 @@ graph TD
     end
 
     subgraph ViewModels
-        AVM[AccountsViewModel]
+        AVM[AccountsViewModel<br/>Dependency Injection]
         AV[AccountViewModel<br/>INotifyPropertyChanged]
         SV[SavingsAccountViewModel<br/>INotifyPropertyChanged]
         OV[OperationViewModel<br/>INotifyPropertyChanged]
@@ -52,24 +77,24 @@ graph TD
         T[Transaction]
     end
 
-    subgraph Repositories
-        BR[BankAccountRepository]
-        SR[SavingsAccountRepository]
-        TR[TransactionRepository]
+    subgraph Repositories[Repositories (Interfaces)]
+        IBR[IBankAccountRepository]
+        ISR[ISavingsAccountRepository]
+        ITR[ITransactionRepository]
     end
 
     HTTP --> AC
     HTTP --> SC
 
-    AC --> AVM
-    SC --> AVM
+    AC -.->|DI| AVM
+    SC -.->|DI| AVM
 
     AVM --> AV
     AVM --> SV
 
-    AVM --> BR
-    AVM --> TR
-    AVM --> SR
+    AVM --> IBR
+    AVM --> ITR
+    AVM --> ISR
 
     AV --> BA
     SV --> SA
@@ -85,9 +110,7 @@ graph TD
     style BA fill:#e8f4d4,stroke:#333,color:#000000
     style SA fill:#e8f4d4,stroke:#333,color:#000000
     style T fill:#e8f4d4,stroke:#333,color:#000000
-    style BR fill:#d4f4e8,stroke:#333,color:#000000
-    style SR fill:#d4f4e8,stroke:#333,color:#000000
-    style TR fill:#d4f4e8,stroke:#333,color:#000000
+    style Repositories fill:#d4f4e8,stroke:#333,color:#000000
 ```
 
 ## Flux de Données
@@ -110,9 +133,9 @@ sequenceDiagram
     Controller-->>Client: JSON Response
 ```
 
-## ViewModels avec PropertyChanged
+## ViewModels avec PropertyChanged et ObservableCollection
 
-Les ViewModels implémentent `INotifyPropertyChanged` pour supporter la liaison de données bidirectionnelle :
+Les ViewModels implémentent `INotifyPropertyChanged` pour supporter la liaison de données bidirectionnelle, et utilisent `ObservableCollection` pour la réactivité :
 
 ```csharp
 public class AccountViewModel : INotifyPropertyChanged
@@ -127,6 +150,24 @@ public class AccountViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+}
+```
+
+Collections réactives :
+
+```csharp
+public class AccountsViewModel
+{
+    public AccountsViewModel(
+        IBankAccountRepository bankAccountRepo,
+        ITransactionRepository transactionRepo,
+        ISavingsAccountRepository savingsRepo)
+    {
+        // Injection via constructeur
+    }
+
+    public ObservableCollection<AccountViewModel> Accounts { get; } = new();
+    public ObservableCollection<SavingsAccountViewModel> SavingsAccounts { get; } = new();
 }
 ```
 
