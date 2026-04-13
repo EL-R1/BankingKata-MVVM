@@ -25,6 +25,91 @@ BankingKata-MVVM/
 - **View** : Controllers API qui retournent des ViewModels en JSON
 - **ViewModel** : `ViewModels/AccountsViewModel.cs` - État observable avec `INotifyPropertyChanged`
 
+## Schéma de l'Architecture
+
+```mermaid
+graph TD
+    subgraph Client
+        HTTP[HTTP Requests]
+    end
+
+    subgraph Controllers
+        AC[AccountsController<br/>api/accounts]
+        SC[SavingsController<br/>api/savings]
+    end
+
+    subgraph ViewModels
+        AVM[AccountsViewModel]
+        AV[AccountViewModel<br/>INotifyPropertyChanged]
+        SV[SavingsAccountViewModel<br/>INotifyPropertyChanged]
+        OV[OperationViewModel<br/>INotifyPropertyChanged]
+        StV[StatementViewModel<br/>INotifyPropertyChanged]
+    end
+
+    subgraph Models
+        BA[BankAccount]
+        SA[SavingsAccount]
+        T[Transaction]
+    end
+
+    subgraph Repositories
+        BR[BankAccountRepository]
+        SR[SavingsAccountRepository]
+        TR[TransactionRepository]
+    end
+
+    HTTP --> AC
+    HTTP --> SC
+
+    AC --> AVM
+    SC --> AVM
+
+    AVM --> AV
+    AVM --> SV
+
+    AVM --> BR
+    AVM --> TR
+    AVM --> SR
+
+    AV --> BA
+    SV --> SA
+
+    style HTTP fill:#e8f4f8,stroke:#333,color:#000000
+    style AC fill:#d4e8f4,stroke:#333,color:#000000
+    style SC fill:#d4e8f4,stroke:#333,color:#000000
+    style AVM fill:#d4f4e8,stroke:#333,color:#000000
+    style AV fill:#e4d4f4,stroke:#333,color:#000000
+    style SV fill:#e4d4f4,stroke:#333,color:#000000
+    style OV fill:#e4d4f4,stroke:#333,color:#000000
+    style StV fill:#e4d4f4,stroke:#333,color:#000000
+    style BA fill:#e8f4d4,stroke:#333,color:#000000
+    style SA fill:#e8f4d4,stroke:#333,color:#000000
+    style T fill:#e8f4d4,stroke:#333,color:#000000
+    style BR fill:#d4f4e8,stroke:#333,color:#000000
+    style SR fill:#d4f4e8,stroke:#333,color:#000000
+    style TR fill:#d4f4e8,stroke:#333,color:#000000
+```
+
+## Flux de Données
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller
+    participant ViewModel
+    participant Model
+    participant Repository
+
+    Client->>Controller: HTTP Request
+    Controller->>ViewModel: Délègue opération
+    ViewModel->>Model: Appelle méthode métier
+    Model->>Repository: Sauvegarde données
+    Repository-->>Model: Données sauvegardées
+    Model-->>ViewModel: Résultat
+    ViewModel-->>Controller: ViewModelmis à jour
+    Controller-->>Client: JSON Response
+```
+
 ## ViewModels avec PropertyChanged
 
 Les ViewModels implémentent `INotifyPropertyChanged` pour supporter la liaison de données bidirectionnelle :
@@ -92,3 +177,4 @@ dotnet run
 ```
 
 L'API sera disponible sur `http://localhost:5000`
+Swagger disponible sur `http://localhost:5000/swagger`
