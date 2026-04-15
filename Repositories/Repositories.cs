@@ -1,5 +1,6 @@
 namespace BankingKata_MVVM.Repositories;
 
+using System.Collections.Concurrent;
 using BankingKata_MVVM.Models;
 
 public interface IBankAccountRepository
@@ -9,11 +10,12 @@ public interface IBankAccountRepository
     IEnumerable<BankAccount> GetAll();
     void Save(BankAccount account);
     void Update(BankAccount account);
+    bool Delete(string accountNumber);
 }
 
 public class BankAccountRepository : IBankAccountRepository
 {
-    private readonly Dictionary<string, BankAccount> _accounts = new();
+    private readonly ConcurrentDictionary<string, BankAccount> _accounts = new();
 
     public bool Exists(string accountNumber) => _accounts.ContainsKey(accountNumber);
 
@@ -34,6 +36,11 @@ public class BankAccountRepository : IBankAccountRepository
     {
         _accounts[account.AccountNumber] = account;
     }
+
+    public bool Delete(string accountNumber)
+    {
+        return _accounts.TryRemove(accountNumber, out _);
+    }
 }
 
 public interface ITransactionRepository
@@ -44,7 +51,8 @@ public interface ITransactionRepository
 
 public class TransactionRepository : ITransactionRepository
 {
-    private readonly List<Transaction> _transactions = new();
+    private readonly ConcurrentBag<Transaction> _transactions = new();
+    private readonly object _lock = new();
 
     public void Save(Transaction transaction)
     {
@@ -55,7 +63,8 @@ public class TransactionRepository : ITransactionRepository
     {
         return _transactions
             .Where(t => t.AccountNumber == accountNumber && t.Date >= fromDate && t.Date <= toDate)
-            .OrderByDescending(t => t.Date);
+            .OrderByDescending(t => t.Date)
+            .ToList();
     }
 }
 
@@ -66,11 +75,12 @@ public interface ISavingsAccountRepository
     IEnumerable<SavingsAccount> GetAll();
     void Save(SavingsAccount account);
     void Update(SavingsAccount account);
+    bool Delete(string accountNumber);
 }
 
 public class SavingsAccountRepository : ISavingsAccountRepository
 {
-    private readonly Dictionary<string, SavingsAccount> _accounts = new();
+    private readonly ConcurrentDictionary<string, SavingsAccount> _accounts = new();
 
     public bool Exists(string accountNumber) => _accounts.ContainsKey(accountNumber);
 
@@ -90,5 +100,10 @@ public class SavingsAccountRepository : ISavingsAccountRepository
     public void Update(SavingsAccount account)
     {
         _accounts[account.AccountNumber] = account;
+    }
+
+    public bool Delete(string accountNumber)
+    {
+        return _accounts.TryRemove(accountNumber, out _);
     }
 }

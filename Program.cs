@@ -1,5 +1,5 @@
 using BankingKata_MVVM.Repositories;
-using BankingKata_MVVM.ViewModels;
+using BankingKata_MVVM.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +12,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IBankAccountRepository, BankAccountRepository>();
 builder.Services.AddSingleton<ITransactionRepository, TransactionRepository>();
 builder.Services.AddSingleton<ISavingsAccountRepository, SavingsAccountRepository>();
-builder.Services.AddTransient<AccountsViewModel>();
+builder.Services.AddTransient<IAccountService, AccountService>();
 
 var app = builder.Build();
 

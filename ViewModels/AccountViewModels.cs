@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 
 namespace BankingKata_MVVM.ViewModels;
@@ -9,6 +10,8 @@ public class AccountViewModel : INotifyPropertyChanged
     private decimal _balance;
     private decimal _overdraftLimit;
 
+    [Required(ErrorMessage = "Account number is required")]
+    [StringLength(20, MinimumLength = 1)]
     public string AccountNumber
     {
         get => _accountNumber;
@@ -37,18 +40,26 @@ public class AccountViewModel : INotifyPropertyChanged
 
 public class CreateAccountViewModel
 {
+    [Required(ErrorMessage = "Account number is required")]
+    [StringLength(20, MinimumLength = 1)]
     public string AccountNumber { get; set; } = string.Empty;
+
     public decimal InitialBalance { get; set; }
+
+    [Range(0, double.MaxValue, ErrorMessage = "Overdraft limit cannot be negative")]
     public decimal OverdraftLimit { get; set; }
 }
 
 public class TransactionViewModel
 {
+    [Required]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be positive")]
     public decimal Amount { get; set; }
 }
 
 public class OverdraftViewModel
 {
+    [Range(0, double.MaxValue, ErrorMessage = "Overdraft limit cannot be negative")]
     public decimal OverdraftLimit { get; set; }
 }
 
@@ -180,7 +191,13 @@ public class SavingsAccountViewModel : INotifyPropertyChanged
 
 public class CreateSavingsAccountViewModel
 {
+    [Required(ErrorMessage = "Account number is required")]
+    [StringLength(20, MinimumLength = 1)]
     public string AccountNumber { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Deposit ceiling is required")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Deposit ceiling must be positive")]
     public decimal DepositCeiling { get; set; }
+
     public decimal InitialBalance { get; set; }
 }

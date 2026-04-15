@@ -1,153 +1,149 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
+using BankingKata_MVVM.Commands;
+using BankingKata_MVVM.Services;
+using BankingKata_MVVM.ViewModels;
 
 namespace BankingKata_MVVM.ViewModels;
 
 public class AccountsViewModel
 {
-    private readonly Repositories.IBankAccountRepository _bankAccountRepo;
-    private readonly Repositories.ITransactionRepository _transactionRepo;
-    private readonly Repositories.ISavingsAccountRepository _savingsRepo;
+    private readonly IAccountService _accountService;
 
-    public AccountsViewModel(
-        Repositories.IBankAccountRepository bankAccountRepo,
-        Repositories.ITransactionRepository transactionRepo,
-        Repositories.ISavingsAccountRepository savingsRepo)
+    public AccountsViewModel(IAccountService accountService)
     {
-        _bankAccountRepo = bankAccountRepo;
-        _transactionRepo = transactionRepo;
-        _savingsRepo = savingsRepo;
+        _accountService = accountService;
+
+        AddAccountCommand = new RelayCommand<CreateAccountViewModel>(AddAccount);
+        DepositCommand = new RelayCommand<DepositCommandParameter>(Deposit);
+        WithdrawCommand = new RelayCommand<WithdrawCommandParameter>(Withdraw);
+        SetOverdraftCommand = new RelayCommand<SetOverdraftCommandParameter>(SetOverdraft);
+        AddSavingsAccountCommand = new RelayCommand<CreateSavingsAccountViewModel>(AddSavingsAccount);
+        DepositSavingsCommand = new RelayCommand<DepositCommandParameter>(DepositSavings);
+        WithdrawSavingsCommand = new RelayCommand<WithdrawCommandParameter>(WithdrawSavings);
     }
 
     public ObservableCollection<AccountViewModel> Accounts { get; } = new();
     public ObservableCollection<SavingsAccountViewModel> SavingsAccounts { get; } = new();
 
-    public void AddAccount(CreateAccountViewModel model)
+    public ICommand AddAccountCommand { get; }
+    public ICommand DepositCommand { get; }
+    public ICommand WithdrawCommand { get; }
+    public ICommand SetOverdraftCommand { get; }
+    public ICommand AddSavingsAccountCommand { get; }
+    public ICommand DepositSavingsCommand { get; }
+    public ICommand WithdrawSavingsCommand { get; }
+
+    private void AddAccount(CreateAccountViewModel? model)
     {
-        if (_bankAccountRepo.Exists(model.AccountNumber))
-            throw new InvalidOperationException($"Account {model.AccountNumber} already exists");
+        if (model is null) return;
 
-        var account = new Models.BankAccount(model.AccountNumber, model.InitialBalance, model.OverdraftLimit);
-        _bankAccountRepo.Save(account);
+        var account = _accountService.CreateAccount(model);
+        Accounts.Add(account);
+    }
 
-        Accounts.Add(new AccountViewModel
+    private void Deposit(DepositCommandParameter? param)
+    {
+        if (param is null) return;
+
+        var account = _accountService.Deposit(param.AccountNumber, param.Amount);
+        var existing = Accounts.FirstOrDefault(a => a.AccountNumber == param.AccountNumber);
+        if (existing is not null)
         {
-            AccountNumber = account.AccountNumber,
-            Balance = account.Balance,
-            OverdraftLimit = account.OverdraftLimit
-        });
+            var index = Accounts.IndexOf(existing);
+            Accounts[index] = account;
+        }
     }
 
-    public void Deposit(string accountNumber, decimal amount)
+    private void Withdraw(WithdrawCommandParameter? param)
     {
-        var account = _bankAccountRepo.GetByAccountNumber(accountNumber)
-            ?? throw new InvalidOperationException($"Account {accountNumber} not found");
+        if (param is null) return;
 
-        account.Deposit(amount);
-        _bankAccountRepo.Update(account);
-
-        RecordTransaction(accountNumber, amount, Models.TransactionType.Deposit, account.Balance);
-
-        var vm = Accounts.First(a => a.AccountNumber == accountNumber);
-        vm.Balance = account.Balance;
+        var account = _accountService.Withdraw(param.AccountNumber, param.Amount);
+        var existing = Accounts.FirstOrDefault(a => a.AccountNumber == param.AccountNumber);
+        if (existing is not null)
+        {
+            var index = Accounts.IndexOf(existing);
+            Accounts[index] = account;
+        }
     }
 
-    public void Withdraw(string accountNumber, decimal amount)
+    private void SetOverdraft(SetOverdraftCommandParameter? param)
     {
-        var account = _bankAccountRepo.GetByAccountNumber(accountNumber)
-            ?? throw new InvalidOperationException($"Account {accountNumber} not found");
+        if (param is null) return;
 
-        account.Withdraw(amount);
-        _bankAccountRepo.Update(account);
-
-        RecordTransaction(accountNumber, amount, Models.TransactionType.Withdrawal, account.Balance);
-
-        var vm = Accounts.First(a => a.AccountNumber == accountNumber);
-        vm.Balance = account.Balance;
+        var account = _accountService.SetOverdraft(param.AccountNumber, param.Limit);
+        var existing = Accounts.FirstOrDefault(a => a.AccountNumber == param.AccountNumber);
+        if (existing is not null)
+        {
+            var index = Accounts.IndexOf(existing);
+            Accounts[index] = account;
+        }
     }
 
-    public void SetOverdraft(string accountNumber, decimal limit)
+    private void AddSavingsAccount(CreateSavingsAccountViewModel? model)
     {
-        var account = _bankAccountRepo.GetByAccountNumber(accountNumber)
-            ?? throw new InvalidOperationException($"Account {accountNumber} not found");
+        if (model is null) return;
 
-        account.SetOverdraftLimit(limit);
-        _bankAccountRepo.Update(account);
+        var account = _accountService.CreateSavingsAccount(model);
+        SavingsAccounts.Add(account);
+    }
 
-        var vm = Accounts.First(a => a.AccountNumber == accountNumber);
-        vm.OverdraftLimit = account.OverdraftLimit;
+    private void DepositSavings(DepositCommandParameter? param)
+    {
+        if (param is null) return;
+
+        var account = _accountService.DepositSavings(param.AccountNumber, param.Amount);
+        var existing = SavingsAccounts.FirstOrDefault(a => a.AccountNumber == param.AccountNumber);
+        if (existing is not null)
+        {
+            var index = SavingsAccounts.IndexOf(existing);
+            SavingsAccounts[index] = account;
+        }
+    }
+
+    private void WithdrawSavings(WithdrawCommandParameter? param)
+    {
+        if (param is null) return;
+
+        var account = _accountService.WithdrawSavings(param.AccountNumber, param.Amount);
+        var existing = SavingsAccounts.FirstOrDefault(a => a.AccountNumber == param.AccountNumber);
+        if (existing is not null)
+        {
+            var index = SavingsAccounts.IndexOf(existing);
+            SavingsAccounts[index] = account;
+        }
     }
 
     public StatementViewModel GetStatement(string accountNumber, DateTime? fromDate = null, DateTime? toDate = null)
     {
-        var account = _bankAccountRepo.GetByAccountNumber(accountNumber)
-            ?? throw new InvalidOperationException($"Account {accountNumber} not found");
+        return _accountService.GetStatement(accountNumber, fromDate, toDate);
+    }
 
-        var to = toDate ?? DateTime.UtcNow;
-        var from = fromDate ?? to.AddMonths(-1);
-
-        var transactions = _transactionRepo.GetByAccountNumberInRange(accountNumber, from, to);
-
-        return new StatementViewModel
+    public void LoadAccounts()
+    {
+        Accounts.Clear();
+        foreach (var account in _accountService.GetAllAccounts())
         {
-            AccountNumber = account.AccountNumber,
-            AccountType = "Compte Courant",
-            Balance = account.Balance,
-            StatementDate = to,
-            Transactions = transactions.Select(t => new OperationViewModel
-            {
-                Id = t.Id,
-                AccountNumber = t.AccountNumber,
-                Amount = t.Amount,
-                Type = t.Type.ToString(),
-                Date = t.Date,
-                BalanceAfterTransaction = t.BalanceAfterTransaction
-            }).ToList()
-        };
+            Accounts.Add(account);
+        }
     }
+}
 
-    public void AddSavingsAccount(CreateSavingsAccountViewModel model)
-    {
-        if (_savingsRepo.Exists(model.AccountNumber))
-            throw new InvalidOperationException($"Savings account {model.AccountNumber} already exists");
+public class DepositCommandParameter
+{
+    public string AccountNumber { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+}
 
-        var account = new Models.SavingsAccount(model.AccountNumber, model.DepositCeiling, model.InitialBalance);
-        _savingsRepo.Save(account);
+public class WithdrawCommandParameter
+{
+    public string AccountNumber { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+}
 
-        SavingsAccounts.Add(new SavingsAccountViewModel
-        {
-            AccountNumber = account.AccountNumber,
-            Balance = account.Balance,
-            DepositCeiling = account.DepositCeiling
-        });
-    }
-
-    public void DepositSavings(string accountNumber, decimal amount)
-    {
-        var account = _savingsRepo.GetByAccountNumber(accountNumber)
-            ?? throw new InvalidOperationException($"Savings account {accountNumber} not found");
-
-        account.Deposit(amount);
-        _savingsRepo.Update(account);
-
-        var vm = SavingsAccounts.First(a => a.AccountNumber == accountNumber);
-        vm.Balance = account.Balance;
-    }
-
-    public void WithdrawSavings(string accountNumber, decimal amount)
-    {
-        var account = _savingsRepo.GetByAccountNumber(accountNumber)
-            ?? throw new InvalidOperationException($"Savings account {accountNumber} not found");
-
-        account.Withdraw(amount);
-        _savingsRepo.Update(account);
-
-        var vm = SavingsAccounts.First(a => a.AccountNumber == accountNumber);
-        vm.Balance = account.Balance;
-    }
-
-    private void RecordTransaction(string accountNumber, decimal amount, Models.TransactionType type, decimal balanceAfter)
-    {
-        var transaction = new Models.Transaction(accountNumber, amount, type, balanceAfter);
-        _transactionRepo.Save(transaction);
-    }
+public class SetOverdraftCommandParameter
+{
+    public string AccountNumber { get; set; } = string.Empty;
+    public decimal Limit { get; set; }
 }

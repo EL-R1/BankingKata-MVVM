@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using BankingKata_MVVM.Services;
 using BankingKata_MVVM.ViewModels;
 
 namespace BankingKata_MVVM.Controllers;
@@ -7,23 +8,23 @@ namespace BankingKata_MVVM.Controllers;
 [Route("api/[controller]")]
 public class SavingsController : ControllerBase
 {
-    private readonly ViewModels.AccountsViewModel _viewModel;
+    private readonly IAccountService _accountService;
 
-    public SavingsController(ViewModels.AccountsViewModel viewModel)
+    public SavingsController(IAccountService accountService)
     {
-        _viewModel = viewModel;
+        _accountService = accountService;
     }
 
     [HttpGet]
     public ActionResult<IEnumerable<SavingsAccountViewModel>> GetAll()
     {
-        return Ok(_viewModel.SavingsAccounts);
+        return Ok(_accountService.GetAllSavingsAccounts());
     }
 
     [HttpGet("{accountNumber}")]
     public ActionResult<SavingsAccountViewModel> Get(string accountNumber)
     {
-        var account = _viewModel.SavingsAccounts.FirstOrDefault(a => a.AccountNumber == accountNumber);
+        var account = _accountService.GetSavingsAccount(accountNumber);
         if (account is null)
             return NotFound(new { message = $"Savings account {accountNumber} not found" });
         return Ok(account);
@@ -34,8 +35,10 @@ public class SavingsController : ControllerBase
     {
         try
         {
-            _viewModel.AddSavingsAccount(model);
-            var account = _viewModel.SavingsAccounts.Last();
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var account = _accountService.CreateSavingsAccount(model);
             return CreatedAtAction(nameof(Get), new { accountNumber = account.AccountNumber }, account);
         }
         catch (InvalidOperationException ex)
@@ -53,8 +56,10 @@ public class SavingsController : ControllerBase
     {
         try
         {
-            _viewModel.DepositSavings(accountNumber, model.Amount);
-            var account = _viewModel.SavingsAccounts.First(a => a.AccountNumber == accountNumber);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var account = _accountService.DepositSavings(accountNumber, model.Amount);
             return Ok(account);
         }
         catch (InvalidOperationException ex)
@@ -72,13 +77,15 @@ public class SavingsController : ControllerBase
     {
         try
         {
-            _viewModel.WithdrawSavings(accountNumber, model.Amount);
-            var account = _viewModel.SavingsAccounts.First(a => a.AccountNumber == accountNumber);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var account = _accountService.WithdrawSavings(accountNumber, model.Amount);
             return Ok(account);
         }
         catch (InvalidOperationException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return BadRequest(new { message = ex.Message });
         }
         catch (ArgumentException ex)
         {
