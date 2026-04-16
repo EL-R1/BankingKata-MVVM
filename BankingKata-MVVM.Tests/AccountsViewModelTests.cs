@@ -1,3 +1,4 @@
+using BankingKata_MVVM.Services;
 using BankingKata_MVVM.ViewModels;
 using BankingKata_MVVM.Repositories;
 using Xunit;
@@ -7,13 +8,16 @@ namespace BankingKata_MVVM.Tests;
 public class AccountsViewModelTests
 {
     private readonly AccountsViewModel _viewModel;
+    private readonly IAccountService _accountService;
 
     public AccountsViewModelTests()
     {
-        _viewModel = new AccountsViewModel(
-            new BankAccountRepository(),
-            new TransactionRepository(),
-            new SavingsAccountRepository());
+        var bankRepo = new BankAccountRepository();
+        var transactionRepo = new TransactionRepository();
+        var savingsRepo = new SavingsAccountRepository();
+        
+        _accountService = new AccountService(bankRepo, transactionRepo, savingsRepo);
+        _viewModel = new AccountsViewModel(_accountService);
     }
 
     [Fact]
@@ -32,7 +36,7 @@ public class AccountsViewModelTests
             OverdraftLimit = 500
         };
 
-        _viewModel.AddAccount(model);
+        _viewModel.AddAccountCommand.Execute(model);
 
         Assert.Single(_viewModel.Accounts);
         var account = _viewModel.Accounts[0];
@@ -50,17 +54,17 @@ public class AccountsViewModelTests
             InitialBalance = 1000
         };
 
-        _viewModel.AddAccount(model);
+        _viewModel.AddAccountCommand.Execute(model);
 
-        Assert.Throws<InvalidOperationException>(() => _viewModel.AddAccount(model));
+        Assert.Throws<InvalidOperationException>(() => _viewModel.AddAccountCommand.Execute(model));
     }
 
     [Fact]
     public void Deposit_ValidAmount_IncreasesBalance()
     {
-        _viewModel.AddAccount(new CreateAccountViewModel { AccountNumber = "ACC001", InitialBalance = 100 });
+        _viewModel.AddAccountCommand.Execute(new CreateAccountViewModel { AccountNumber = "ACC001", InitialBalance = 100 });
 
-        _viewModel.Deposit("ACC001", 50);
+        _viewModel.DepositCommand.Execute(new DepositCommandParameter { AccountNumber = "ACC001", Amount = 50 });
 
         var account = _viewModel.Accounts.First(a => a.AccountNumber == "ACC001");
         Assert.Equal(150, account.Balance);
@@ -69,15 +73,16 @@ public class AccountsViewModelTests
     [Fact]
     public void Deposit_NonExistingAccount_ThrowsException()
     {
-        Assert.Throws<InvalidOperationException>(() => _viewModel.Deposit("NONEXISTENT", 50));
+        Assert.Throws<InvalidOperationException>(() => 
+            _viewModel.DepositCommand.Execute(new DepositCommandParameter { AccountNumber = "NONEXISTENT", Amount = 50 }));
     }
 
     [Fact]
     public void Withdraw_ValidAmount_DecreasesBalance()
     {
-        _viewModel.AddAccount(new CreateAccountViewModel { AccountNumber = "ACC001", InitialBalance = 100 });
+        _viewModel.AddAccountCommand.Execute(new CreateAccountViewModel { AccountNumber = "ACC001", InitialBalance = 100 });
 
-        _viewModel.Withdraw("ACC001", 30);
+        _viewModel.WithdrawCommand.Execute(new WithdrawCommandParameter { AccountNumber = "ACC001", Amount = 30 });
 
         var account = _viewModel.Accounts.First(a => a.AccountNumber == "ACC001");
         Assert.Equal(70, account.Balance);
@@ -86,17 +91,18 @@ public class AccountsViewModelTests
     [Fact]
     public void Withdraw_InsufficientFunds_ThrowsException()
     {
-        _viewModel.AddAccount(new CreateAccountViewModel { AccountNumber = "ACC001", InitialBalance = 100, OverdraftLimit = 0 });
+        _viewModel.AddAccountCommand.Execute(new CreateAccountViewModel { AccountNumber = "ACC001", InitialBalance = 100, OverdraftLimit = 0 });
 
-        Assert.Throws<InvalidOperationException>(() => _viewModel.Withdraw("ACC001", 150));
+        Assert.Throws<InvalidOperationException>(() => 
+            _viewModel.WithdrawCommand.Execute(new WithdrawCommandParameter { AccountNumber = "ACC001", Amount = 150 }));
     }
 
     [Fact]
     public void SetOverdraft_ValidLimit_UpdatesOverdraft()
     {
-        _viewModel.AddAccount(new CreateAccountViewModel { AccountNumber = "ACC001", InitialBalance = 100, OverdraftLimit = 0 });
+        _viewModel.AddAccountCommand.Execute(new CreateAccountViewModel { AccountNumber = "ACC001", InitialBalance = 100, OverdraftLimit = 0 });
 
-        _viewModel.SetOverdraft("ACC001", 200);
+        _viewModel.SetOverdraftCommand.Execute(new SetOverdraftCommandParameter { AccountNumber = "ACC001", Limit = 200 });
 
         var account = _viewModel.Accounts.First(a => a.AccountNumber == "ACC001");
         Assert.Equal(200, account.OverdraftLimit);
@@ -105,8 +111,8 @@ public class AccountsViewModelTests
     [Fact]
     public void GetStatement_ExistingAccount_ReturnsStatement()
     {
-        _viewModel.AddAccount(new CreateAccountViewModel { AccountNumber = "ACC001", InitialBalance = 100 });
-        _viewModel.Deposit("ACC001", 50);
+        _viewModel.AddAccountCommand.Execute(new CreateAccountViewModel { AccountNumber = "ACC001", InitialBalance = 100 });
+        _viewModel.DepositCommand.Execute(new DepositCommandParameter { AccountNumber = "ACC001", Amount = 50 });
 
         var statement = _viewModel.GetStatement("ACC001");
 
